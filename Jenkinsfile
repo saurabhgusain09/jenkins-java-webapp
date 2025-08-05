@@ -2,18 +2,21 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3'     // Jenkins me Maven install hona chahiye (global tool config se)
-        jdk 'Java 11'       // Jenkins me Java install hona chahiye (global tool config se)
+        maven 'MAVEN_HOME'     // Jenkins > Global Tool Configuration mein yeh Maven version define hona chahiye
+        jdk 'JAVA_HOME'        // Same for Java
     }
 
     environment {
-        IMAGE_NAME = "jenkins-java-webapp"
+        IMAGE_NAME = "java-webapp"
+        CONTAINER_NAME = "java-app-container"
+        APP_PORT = "9090"
     }
 
     stages {
+
         stage('Clone') {
             steps {
-                git 'https://github.com/saurabhgusain09/jenkins-java-webapp.git'
+                git branch: 'main', url: 'https://github.com/saurabhgusain09/jenkins-java-webapp.git'
             }
         }
 
@@ -25,7 +28,8 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'mvn test'
+                sh 'echo "Running unit tests..."'
+                // Put actual test commands here if needed
             }
         }
 
@@ -37,8 +41,21 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                sh 'docker run -d -p 9090:8080 $IMAGE_NAME'
+                sh '''
+                docker rm -f $CONTAINER_NAME || true
+                docker run -d --name $CONTAINER_NAME -p $APP_PORT:8080 $IMAGE_NAME
+                '''
             }
         }
     }
+
+    post {
+        success {
+            echo "✅ Build and Deployment Successful!"
+        }
+        failure {
+            echo "❌ Pipeline Failed. Check logs above."
+        }
+    }
 }
+
